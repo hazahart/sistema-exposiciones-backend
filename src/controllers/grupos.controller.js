@@ -5,9 +5,9 @@ const getGrupos = async (req, res, next) => {
         const page = parseInt(req.query.page) || 0
         const size = parseInt(req.query.size) || 10
         const from = page * size
-        const to   = from + size - 1
+        const to = from + size - 1
 
-        const { data, count, error } = await supabase
+        const {data, count, error} = await supabase
             .from('grupos')
             .select(`
         id_grupo,
@@ -16,16 +16,16 @@ const getGrupos = async (req, res, next) => {
         grupo_alumnos (
           alumnos ( id_alumno, matricula, nombre, correo, rol )
         )
-      `, { count: 'exact' })
+      `, {count: 'exact'})
             .range(from, to)
 
         if (error) return next(error)
 
         const content = data.map(g => ({
-            id_grupo:     g.id_grupo,
+            id_grupo: g.id_grupo,
             nombre_grupo: g.nombre_grupo,
-            id_materia:   g.id_materia,
-            alumnos:      g.grupo_alumnos.map(ga => ga.alumnos)
+            id_materia: g.id_materia,
+            alumnos: g.grupo_alumnos.map(ga => ga.alumnos)
         }))
 
         res.status(200).json({
@@ -33,7 +33,7 @@ const getGrupos = async (req, res, next) => {
             page,
             size,
             totalElements: count,
-            totalPages:    Math.ceil(count / size)
+            totalPages: Math.ceil(count / size)
         })
     } catch (err) {
         next(err)
@@ -42,9 +42,9 @@ const getGrupos = async (req, res, next) => {
 
 const getGrupoById = async (req, res, next) => {
     try {
-        const { id } = req.params
+        const {id} = req.params
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('grupos')
             .select(`
         id_grupo,
@@ -68,10 +68,10 @@ const getGrupoById = async (req, res, next) => {
         }
 
         res.status(200).json({
-            id_grupo:     data.id_grupo,
+            id_grupo: data.id_grupo,
             nombre_grupo: data.nombre_grupo,
-            id_materia:   data.id_materia,
-            alumnos:      data.grupo_alumnos.map(ga => ga.alumnos)
+            id_materia: data.id_materia,
+            alumnos: data.grupo_alumnos.map(ga => ga.alumnos)
         })
     } catch (err) {
         next(err)
@@ -80,7 +80,7 @@ const getGrupoById = async (req, res, next) => {
 
 const createGrupo = async (req, res, next) => {
     try {
-        const { nombre_grupo, id_materia } = req.body
+        const {nombre_grupo, id_materia} = req.body
 
         if (!nombre_grupo || !id_materia) {
             return res.status(400).json({
@@ -92,7 +92,7 @@ const createGrupo = async (req, res, next) => {
             })
         }
 
-        const { data: materia } = await supabase
+        const {data: materia} = await supabase
             .from('materias')
             .select('id_materia')
             .eq('id_materia', id_materia)
@@ -108,15 +108,15 @@ const createGrupo = async (req, res, next) => {
             })
         }
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('grupos')
-            .insert({ nombre_grupo, id_materia })
+            .insert({nombre_grupo, id_materia})
             .select()
             .single()
 
         if (error) return next(error)
 
-        res.status(201).json({ ...data, alumnos: [] })
+        res.status(201).json({...data, alumnos: []})
     } catch (err) {
         next(err)
     }
@@ -124,8 +124,8 @@ const createGrupo = async (req, res, next) => {
 
 const updateGrupo = async (req, res, next) => {
     try {
-        const { id } = req.params
-        const { nombre_grupo, id_materia } = req.body
+        const {id} = req.params
+        const {nombre_grupo, id_materia} = req.body
 
         if (!nombre_grupo || !id_materia) {
             return res.status(400).json({
@@ -137,9 +137,9 @@ const updateGrupo = async (req, res, next) => {
             })
         }
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('grupos')
-            .update({ nombre_grupo, id_materia })
+            .update({nombre_grupo, id_materia})
             .eq('id_grupo', id)
             .select()
             .single()
@@ -164,9 +164,9 @@ const updateGrupo = async (req, res, next) => {
 
 const deleteGrupo = async (req, res, next) => {
     try {
-        const { id } = req.params
+        const {id} = req.params
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('grupos')
             .delete()
             .eq('id_grupo', id)
@@ -204,8 +204,8 @@ const deleteGrupo = async (req, res, next) => {
 
 const addAlumnoToGrupo = async (req, res, next) => {
     try {
-        const { id } = req.params
-        const { id_alumno } = req.body
+        const {id} = req.params
+        const {id_alumno} = req.body
 
         if (!id_alumno) {
             return res.status(400).json({
@@ -217,7 +217,7 @@ const addAlumnoToGrupo = async (req, res, next) => {
             })
         }
 
-        const { data: grupo } = await supabase
+        const {data: grupo} = await supabase
             .from('grupos')
             .select('id_grupo')
             .eq('id_grupo', id)
@@ -233,7 +233,7 @@ const addAlumnoToGrupo = async (req, res, next) => {
             })
         }
 
-        const { data: alumno } = await supabase
+        const {data: alumno} = await supabase
             .from('alumnos')
             .select('id_alumno')
             .eq('id_alumno', id_alumno)
@@ -249,9 +249,9 @@ const addAlumnoToGrupo = async (req, res, next) => {
             })
         }
 
-        const { error } = await supabase
+        const {error} = await supabase
             .from('grupo_alumnos')
-            .insert({ id_grupo: id, id_alumno })
+            .insert({id_grupo: id, id_alumno})
 
         if (error) {
             if (error.code === '23505') {
@@ -274,8 +274,8 @@ const addAlumnoToGrupo = async (req, res, next) => {
 
 const removeAlumnoFromGrupo = async (req, res, next) => {
     try {
-        const { id } = req.params
-        const { id_alumno } = req.body
+        const {id} = req.params
+        const {id_alumno} = req.body
 
         if (!id_alumno) {
             return res.status(400).json({
@@ -287,7 +287,7 @@ const removeAlumnoFromGrupo = async (req, res, next) => {
             })
         }
 
-        const { data, error } = await supabase
+        const {data, error} = await supabase
             .from('grupo_alumnos')
             .delete()
             .eq('id_grupo', id)
