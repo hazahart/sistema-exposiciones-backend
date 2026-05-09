@@ -1,0 +1,1444 @@
+openapi: 3.0.3
+info:
+  title: API Sistema de Exposiciones
+  description: API REST para la gestión de materias, grupos, equipos y evaluaciones con rúbrica.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor local desarrollo
+  - url: https://api.exposiciones.app/api/v1
+    description: Servidor producción
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Materias
+  - name: Grupos
+  - name: Alumnos
+  - name: Equipos
+  - name: Exposiciones
+  - name: Criterios
+  - name: Evaluaciones
+
+paths:
+
+  # ─────────────────────────────────────────
+  # AUTH
+  # ─────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Autenticación de usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              matricula: "21031024"
+              password: "123456"
+      responses:
+        '200':
+          description: Token generado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─────────────────────────────────────────
+  # MATERIAS
+  # ─────────────────────────────────────────
+
+  /materias:
+    get:
+      tags: [Materias]
+      summary: Listar materias
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - in: query
+          name: nombre
+          schema:
+            type: string
+          description: Filtrar por nombre (búsqueda parcial)
+          example: "Programación"
+      responses:
+        '200':
+          description: Lista paginada de materias
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedMaterias'
+              example:
+                content:
+                  - id_materia: 1
+                    clave_materia: "PROG-01"
+                    nombre_materia: "Programación Web"
+                page: 0
+                size: 10
+                totalElements: 1
+                totalPages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Materias]
+      summary: Crear materia
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaInput'
+            example:
+              clave_materia: "PROG-01"
+              nombre_materia: "Programación Web"
+      responses:
+        '201':
+          description: Materia creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Materia'
+              example:
+                id_materia: 1
+                clave_materia: "PROG-01"
+                nombre_materia: "Programación Web"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /materias/{id}:
+    get:
+      tags: [Materias]
+      summary: Obtener materia por ID
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Materia encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Materia'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Materias]
+      summary: Actualizar materia
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MateriaInput'
+      responses:
+        '200':
+          description: Materia actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Materia'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Materias]
+      summary: Eliminar materia
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Materia eliminada correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque tiene grupos asociados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─────────────────────────────────────────
+  # ALUMNOS
+  # ─────────────────────────────────────────
+
+  /alumnos:
+    get:
+      tags: [Alumnos]
+      summary: Listar todos los alumnos
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - in: query
+          name: nombre
+          schema:
+            type: string
+          description: Filtrar por nombre
+      responses:
+        '200':
+          description: Lista de alumnos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAlumnos'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Alumnos]
+      summary: Registrar un nuevo alumno
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlumnoInput'
+            example:
+              matricula: "21031024"
+              nombre: "Juan Pérez"
+              correo: "juan@universidad.edu"
+              password: "123456"
+      responses:
+        '201':
+          description: Alumno registrado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alumno'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /alumnos/{id}:
+    get:
+      tags: [Alumnos]
+      summary: Obtener alumno por ID
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Alumno encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alumno'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Alumnos]
+      summary: Actualizar alumno
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlumnoUpdateInput'
+      responses:
+        '200':
+          description: Alumno actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Alumno'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Alumnos]
+      summary: Eliminar alumno
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Alumno eliminado correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque tiene evaluaciones registradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─────────────────────────────────────────
+  # GRUPOS
+  # ─────────────────────────────────────────
+
+  /grupos:
+    get:
+      tags: [Grupos]
+      summary: Listar grupos con sus alumnos
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Lista de grupos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedGrupos'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Grupos]
+      summary: Crear un nuevo grupo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrupoInput'
+            example:
+              nombre_grupo: "Grupo A"
+              id_materia: 1
+      responses:
+        '201':
+          description: Grupo creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grupo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Materia no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /grupos/{id}:
+    get:
+      tags: [Grupos]
+      summary: Obtener grupo por ID con sus alumnos
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Grupo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grupo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Grupos]
+      summary: Actualizar grupo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrupoInput'
+      responses:
+        '200':
+          description: Grupo actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Grupo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Grupos]
+      summary: Eliminar grupo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Grupo eliminado correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque tiene equipos asociados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /grupos/{id}/alumnos:
+    post:
+      tags: [Grupos]
+      summary: Inscribir alumno a un grupo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_alumno]
+              properties:
+                id_alumno:
+                  type: integer
+                  example: 3
+      responses:
+        '201':
+          description: Alumno inscrito al grupo correctamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Alumno ya inscrito en el grupo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Grupos]
+      summary: Remover alumno de un grupo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_alumno]
+              properties:
+                id_alumno:
+                  type: integer
+                  example: 3
+      responses:
+        '204':
+          description: Alumno removido del grupo correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # EQUIPOS
+  # ─────────────────────────────────────────
+
+  /equipos:
+    get:
+      tags: [Equipos]
+      summary: Listar equipos con sus integrantes
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Lista de equipos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedEquipos'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Equipos]
+      summary: Crear un nuevo equipo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipoInput'
+            example:
+              nombre_equipo: "Equipo Alpha"
+              id_grupo: 1
+      responses:
+        '201':
+          description: Equipo creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Grupo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /equipos/{id}:
+    get:
+      tags: [Equipos]
+      summary: Obtener equipo por ID con sus integrantes
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Equipo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Equipos]
+      summary: Actualizar equipo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipoInput'
+      responses:
+        '200':
+          description: Equipo actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Equipos]
+      summary: Eliminar equipo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Equipo eliminado correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque tiene exposiciones asociadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /equipos/{id}/alumnos:
+    post:
+      tags: [Equipos]
+      summary: Asignar integrante a un equipo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_alumno]
+              properties:
+                id_alumno:
+                  type: integer
+                  example: 3
+      responses:
+        '201':
+          description: Alumno asignado al equipo correctamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Alumno ya pertenece al equipo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Equipos]
+      summary: Remover integrante de un equipo
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_alumno]
+              properties:
+                id_alumno:
+                  type: integer
+                  example: 3
+      responses:
+        '204':
+          description: Alumno removido del equipo correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ─────────────────────────────────────────
+  # EXPOSICIONES
+  # ─────────────────────────────────────────
+
+  /exposiciones:
+    get:
+      tags: [Exposiciones]
+      summary: Listar exposiciones programadas
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - in: query
+          name: id_equipo
+          schema:
+            type: integer
+          description: Filtrar por equipo
+      responses:
+        '200':
+          description: Lista de exposiciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedExposiciones'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Exposiciones]
+      summary: Programar una exposición
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExposicionInput'
+            example:
+              tema: "Arquitectura de Microservicios"
+              fecha_programada: "2025-06-15T10:00:00Z"
+              id_equipo: 1
+      responses:
+        '201':
+          description: Exposición programada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exposicion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Equipo no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /exposiciones/{id}:
+    get:
+      tags: [Exposiciones]
+      summary: Obtener exposición por ID
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Exposición encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exposicion'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Exposiciones]
+      summary: Actualizar exposición
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExposicionInput'
+      responses:
+        '200':
+          description: Exposición actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exposicion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Exposiciones]
+      summary: Eliminar exposición
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Exposición eliminada correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque tiene evaluaciones registradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─────────────────────────────────────────
+  # CRITERIOS
+  # ─────────────────────────────────────────
+
+  /criterios:
+    get:
+      tags: [Criterios]
+      summary: Listar todos los criterios de evaluación
+      responses:
+        '200':
+          description: Lista de criterios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Criterio'
+              example:
+                - id_criterio: 1
+                  descripcion: "Dominio del tema"
+                  peso_porcentaje: 40.00
+                - id_criterio: 2
+                  descripcion: "Material de apoyo"
+                  peso_porcentaje: 30.00
+                - id_criterio: 3
+                  descripcion: "Presentación oral"
+                  peso_porcentaje: 30.00
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Criterios]
+      summary: Crear un nuevo criterio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CriterioInput'
+            example:
+              descripcion: "Dominio del tema"
+              peso_porcentaje: 40.00
+      responses:
+        '201':
+          description: Criterio creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Criterio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /criterios/{id}:
+    get:
+      tags: [Criterios]
+      summary: Obtener criterio por ID
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Criterio encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Criterio'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Criterios]
+      summary: Actualizar criterio
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CriterioInput'
+      responses:
+        '200':
+          description: Criterio actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Criterio'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Criterios]
+      summary: Eliminar criterio
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Criterio eliminado correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: No se puede eliminar porque está en uso en evaluaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ─────────────────────────────────────────
+  # EVALUACIONES
+  # ─────────────────────────────────────────
+
+  /evaluaciones:
+    get:
+      tags: [Evaluaciones]
+      summary: Listar evaluaciones
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - in: query
+          name: id_exposicion
+          schema:
+            type: integer
+          description: Filtrar por exposición
+        - in: query
+          name: id_alumno_evaluador
+          schema:
+            type: integer
+          description: Filtrar por evaluador
+      responses:
+        '200':
+          description: Lista de evaluaciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedEvaluaciones'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Evaluaciones]
+      summary: Registrar evaluación completa con rúbrica
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluacionInput'
+            example:
+              id_exposicion: 2
+              id_alumno_evaluador: 5
+              detalles:
+                - id_criterio: 1
+                  calificacion: 8.5
+                - id_criterio: 2
+                  calificacion: 9.0
+                - id_criterio: 3
+                  calificacion: 7.5
+      responses:
+        '201':
+          description: Evaluación registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluacion'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: El alumno ya evaluó esta exposición
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /evaluaciones/{id}:
+    get:
+      tags: [Evaluaciones]
+      summary: Obtener evaluación por ID con detalles
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Evaluación encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Evaluacion'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Evaluaciones]
+      summary: Eliminar evaluación
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Evaluación eliminada correctamente
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+
+  responses:
+    BadRequest:
+      description: Datos inválidos en la solicitud
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2025-06-01T12:00:00Z"
+            status: 400
+            error: "Bad Request"
+            message: "El campo nombre_materia es requerido"
+            path: "/api/v1/materias"
+
+    Unauthorized:
+      description: Token ausente o inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2025-06-01T12:00:00Z"
+            status: 401
+            error: "Unauthorized"
+            message: "Token JWT inválido o expirado"
+            path: "/api/v1/materias"
+
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2025-06-01T12:00:00Z"
+            status: 404
+            error: "Not Found"
+            message: "El recurso solicitado no existe"
+            path: "/api/v1/materias/99"
+
+    Conflict:
+      description: Conflicto de datos (registro duplicado)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2025-06-01T12:00:00Z"
+            status: 409
+            error: "Conflict"
+            message: "Ya existe una materia con esa clave"
+            path: "/api/v1/materias"
+
+  schemas:
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-06-01T12:00:00Z"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: "Not Found"
+        message:
+          type: string
+          example: "El recurso solicitado no existe"
+        path:
+          type: string
+          example: "/api/v1/materias/99"
+
+    LoginRequest:
+      type: object
+      required: [matricula, password]
+      properties:
+        matricula:
+          type: string
+          example: "21031024"
+        password:
+          type: string
+          format: password
+          example: "123456"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    # ── Materia ──────────────────────────────
+
+    Materia:
+      type: object
+      properties:
+        id_materia:
+          type: integer
+          example: 1
+        clave_materia:
+          type: string
+          example: "PROG-01"
+        nombre_materia:
+          type: string
+          example: "Programación Web"
+
+    MateriaInput:
+      type: object
+      required: [clave_materia, nombre_materia]
+      properties:
+        clave_materia:
+          type: string
+          maxLength: 20
+          example: "PROG-01"
+        nombre_materia:
+          type: string
+          maxLength: 100
+          example: "Programación Web"
+
+    PagedMaterias:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Materia'
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 10
+        totalElements:
+          type: integer
+          example: 25
+        totalPages:
+          type: integer
+          example: 3
+
+    # ── Alumno ──────────────────────────────
+
+    Alumno:
+      type: object
+      properties:
+        id_alumno:
+          type: integer
+          example: 1
+        matricula:
+          type: string
+          example: "21031024"
+        nombre:
+          type: string
+          example: "Juan Pérez"
+        correo:
+          type: string
+          format: email
+          example: "juan@universidad.edu"
+        rol:
+          type: string
+          enum: [admin, alumno]
+          example: "alumno"
+
+    AlumnoInput:
+      type: object
+      required: [matricula, nombre, correo, password]
+      properties:
+        matricula:
+          type: string
+          maxLength: 20
+          example: "21031024"
+        nombre:
+          type: string
+          maxLength: 100
+          example: "Juan Pérez"
+        correo:
+          type: string
+          format: email
+          example: "juan@universidad.edu"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "123456"
+        rol:
+          type: string
+          enum: [admin, alumno]
+          default: alumno
+          example: "alumno"
+
+    AlumnoUpdateInput:
+      type: object
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+          example: "Juan Pérez"
+        correo:
+          type: string
+          format: email
+          example: "juan@universidad.edu"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "nueva_clave"
+
+    PagedAlumnos:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alumno'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ── Grupo ───────────────────────────────
+
+    Grupo:
+      type: object
+      properties:
+        id_grupo:
+          type: integer
+          example: 1
+        nombre_grupo:
+          type: string
+          example: "Grupo A"
+        id_materia:
+          type: integer
+          example: 1
+        alumnos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alumno'
+
+    GrupoInput:
+      type: object
+      required: [nombre_grupo, id_materia]
+      properties:
+        nombre_grupo:
+          type: string
+          maxLength: 50
+          example: "Grupo A"
+        id_materia:
+          type: integer
+          example: 1
+
+    PagedGrupos:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grupo'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ── Equipo ──────────────────────────────
+
+    Equipo:
+      type: object
+      properties:
+        id_equipo:
+          type: integer
+          example: 1
+        nombre_equipo:
+          type: string
+          example: "Equipo Alpha"
+        id_grupo:
+          type: integer
+          example: 1
+        alumnos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alumno'
+
+    EquipoInput:
+      type: object
+      required: [nombre_equipo, id_grupo]
+      properties:
+        nombre_equipo:
+          type: string
+          maxLength: 50
+          example: "Equipo Alpha"
+        id_grupo:
+          type: integer
+          example: 1
+
+    PagedEquipos:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Equipo'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ── Exposicion ──────────────────────────
+
+    Exposicion:
+      type: object
+      properties:
+        id_exposicion:
+          type: integer
+          example: 1
+        tema:
+          type: string
+          example: "Arquitectura de Microservicios"
+        fecha_programada:
+          type: string
+          format: date-time
+          example: "2025-06-15T10:00:00Z"
+        id_equipo:
+          type: integer
+          example: 1
+        estado:
+          type: string
+          enum: [propia, evaluada, pendiente]
+          description: Estado de la exposición respecto al alumno autenticado
+          example: "pendiente"
+
+    ExposicionInput:
+      type: object
+      required: [tema, fecha_programada, id_equipo]
+      properties:
+        tema:
+          type: string
+          maxLength: 200
+          example: "Arquitectura de Microservicios"
+        fecha_programada:
+          type: string
+          format: date-time
+          example: "2025-06-15T10:00:00Z"
+        id_equipo:
+          type: integer
+          example: 1
+
+    PagedExposiciones:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Exposicion'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ── Criterio ────────────────────────────
+
+    Criterio:
+      type: object
+      properties:
+        id_criterio:
+          type: integer
+          example: 1
+        descripcion:
+          type: string
+          example: "Dominio del tema"
+        peso_porcentaje:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 40.00
+
+    CriterioInput:
+      type: object
+      required: [descripcion, peso_porcentaje]
+      properties:
+        descripcion:
+          type: string
+          maxLength: 255
+          example: "Dominio del tema"
+        peso_porcentaje:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 40.00
+
+    # ── Evaluacion ──────────────────────────
+
+    EvaluacionDetalle:
+      type: object
+      properties:
+        id_criterio:
+          type: integer
+          example: 1
+        descripcion:
+          type: string
+          example: "Dominio del tema"
+        peso_porcentaje:
+          type: number
+          example: 40.00
+        calificacion:
+          type: number
+          minimum: 0
+          maximum: 10
+          example: 8.5
+
+    Evaluacion:
+      type: object
+      properties:
+        id_evaluacion:
+          type: integer
+          example: 1
+        id_exposicion:
+          type: integer
+          example: 2
+        id_alumno_evaluador:
+          type: integer
+          example: 5
+        fecha_registro:
+          type: string
+          format: date-time
+          example: "2025-06-01T12:00:00Z"
+        calificacion_final:
+          type: number
+          format: float
+          description: Calificación ponderada calculada automáticamente
+          example: 8.35
+        detalles:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluacionDetalle'
+
+    EvaluacionInput:
+      type: object
+      required: [id_exposicion, id_alumno_evaluador, detalles]
+      properties:
+        id_exposicion:
+          type: integer
+          example: 2
+        id_alumno_evaluador:
+          type: integer
+          example: 5
+        detalles:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [id_criterio, calificacion]
+            properties:
+              id_criterio:
+                type: integer
+                example: 1
+              calificacion:
+                type: number
+                minimum: 0
+                maximum: 10
+                example: 8.5
+
+    PagedEvaluaciones:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evaluacion'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
