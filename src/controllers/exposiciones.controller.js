@@ -8,6 +8,8 @@ const getExposiciones = async (req, res, next) => {
         const from = page * size
         const to = from + size - 1
 
+        const id_alumno = req.alumno.id_alumno
+
         let query = supabase
             .from('exposiciones')
             .select('*', {count: 'exact'})
@@ -17,12 +19,38 @@ const getExposiciones = async (req, res, next) => {
             query = query.eq('id_equipo', id_equipo)
         }
 
-        const {data, count, error} = await query
+        const {data: exposiciones, count, error} = await query
 
         if (error) return next(error)
 
+        const {data: misEquipos} = await supabase
+            .from('equipo_alumnos')
+            .select('id_equipo')
+            .eq('id_alumno', id_alumno)
+
+        const misEquiposIds = misEquipos ? misEquipos.map(e => e.id_equipo) : []
+
+        const {data: misEvaluaciones} = await supabase
+            .from('evaluaciones')
+            .select('id_exposicion')
+            .eq('id_alumno_evaluador', id_alumno)
+
+        const exposicionesEvaluadas = misEvaluaciones ? misEvaluaciones.map(e => e.id_exposicion) : []
+
+        const content = exposiciones.map(exp => {
+            let estado = 'pendiente'
+
+            if (misEquiposIds.includes(exp.id_equipo)) {
+                estado = 'propia'
+            } else if (exposicionesEvaluadas.includes(exp.id_exposicion)) {
+                estado = 'evaluada'
+            }
+
+            return {...exp, estado}
+        })
+
         res.status(200).json({
-            content: data,
+            content,
             page,
             size,
             totalElements: count,
