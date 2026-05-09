@@ -18,7 +18,7 @@ const login = async (req, res, next) => {
 
         const { data: alumno, error } = await supabase
             .from('alumnos')
-            .select('id_alumno, matricula, nombre, correo, password')
+            .select('id_alumno, matricula, nombre, correo, password, rol')
             .eq('matricula', matricula)
             .single()
 
@@ -48,7 +48,8 @@ const login = async (req, res, next) => {
             {
                 id_alumno: alumno.id_alumno,
                 matricula: alumno.matricula,
-                nombre: alumno.nombre
+                nombre: alumno.nombre,
+                rol: alumno.rol
             },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
