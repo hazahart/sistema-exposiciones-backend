@@ -25,6 +25,8 @@ app.use('/api/v1/exposiciones', exposicionesRoutes)
 app.use('/api/v1/criterios', criteriosRoutes)
 app.use('/api/v1/evaluaciones', evaluacionesRoutes)
 
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }))
+
 app.use(errorHandler)
 
 module.exports = app
