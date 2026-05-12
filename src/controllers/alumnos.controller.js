@@ -198,10 +198,63 @@ const deleteAlumno = async (req, res, next) => {
     }
 }
 
+// Nueva función para las estadísticas del Dashboard
+const getStudentStats = async (req, res, next) => {
+    try {
+        const id_alumno = req.user.id_alumno; 
+
+        // 1. Materias (Inscritas en grupo_alumnos)
+        const { count: totalMaterias } = await supabase
+            .from('grupo_alumnos')
+            .select('*', { count: 'exact', head: true })
+            .eq('id_alumno', id_alumno);
+
+        // 2. Exposiciones (Buscando los equipos del alumno)
+        const { data: equipos } = await supabase
+            .from('equipo_alumnos')
+            .select('id_equipo')
+            .eq('id_alumno', id_alumno);
+
+        const idsEquipos = equipos ? equipos.map(e => e.id_equipo) : [];
+
+        const { count: totalExpos } = await supabase
+            .from('exposiciones')
+            .select('*', { count: 'exact', head: true })
+            .in('id_equipo', idsEquipos);
+
+        // 3. Evaluaciones realizadas por este alumno
+        const { count: totalEvaluaciones } = await supabase
+            .from('evaluaciones')
+            .select('*', { count: 'exact', head: true })
+            .eq('id_alumno_evaluador', id_alumno);
+
+        // 4. Próximas exposiciones
+        const { data: proximas } = await supabase
+            .from('exposiciones')
+            .select('tema, fecha_programada')
+            .in('id_equipo', idsEquipos)
+            .gte('fecha_programada', new Date().toISOString())
+            .order('fecha_programada', { ascending: true })
+            .limit(3);
+
+        res.status(200).json({
+            materias_activas: totalMaterias || 0,
+            grupos_totales: totalMaterias || 0,
+            exposiciones: totalExpos || 0,
+            evaluadas: totalEvaluaciones || 0,
+            proximas_exposiciones: proximas || []
+        });
+
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     getAlumnos,
     getAlumnoById,
     createAlumno,
     updateAlumno,
-    deleteAlumno
+    deleteAlumno,
+    getStudentStats // Exportada correctamente
 }

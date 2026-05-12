@@ -7,8 +7,16 @@ const {
     getAlumnoById,
     createAlumno,
     updateAlumno,
-    deleteAlumno
+    deleteAlumno,
+    getStudentStats // Importamos la nueva función
 } = require('../controllers/alumnos.controller')
+
+// --- Rutas de Información ---
+
+// IMPORTANTE: Esta ruta debe ir antes de /:id
+router.get('/stats/dashboard', auth, getStudentStats)
+
+// --- Rutas CRUD ---
 
 router.get('/', auth, getAlumnos)
 router.get('/:id', auth, getAlumnoById)
