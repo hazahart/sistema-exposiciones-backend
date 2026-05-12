@@ -198,54 +198,89 @@ const deleteAlumno = async (req, res, next) => {
     }
 }
 
-// Nueva función para las estadísticas del Dashboard
+// Nueva función para las estadísticas del Dashboard mejorada
 const getStudentStats = async (req, res, next) => {
     try {
-        const id_alumno = req.user.id_alumno; 
+        // SEGURIDAD: Intentamos obtener el ID de varias fuentes para evitar el error 500
+        // Si req.user no existe o no tiene ID, lanzamos un 401 en lugar de romper el servidor
+        const id_alumno = req.alumno?.id_alumno || req.alumno?.id || req.alumno?.sub;
 
-        // 1. Materias (Inscritas en grupo_alumnos)
-        const { count: totalMaterias } = await supabase
+        if (!id_alumno) {
+            return res.status(401).json({
+                timestamp: new Date().toISOString(),
+                status: 401,
+                error: 'Unauthorized',
+                message: 'No se pudo identificar al alumno a través del token proporcionado',
+                path: req.path
+            });
+        }
+
+        console.log(`Obteniendo estadísticas para el alumno ID: ${id_alumno}`);
+
+        // 1. Materias (Inscritas en la tabla grupo_alumnos)
+        const { count: totalMaterias, error: errMaterias } = await supabase
             .from('grupo_alumnos')
             .select('*', { count: 'exact', head: true })
             .eq('id_alumno', id_alumno);
 
-        // 2. Exposiciones (Buscando los equipos del alumno)
-        const { data: equipos } = await supabase
+        if (errMaterias) throw errMaterias;
+
+        // 2. Obtener los IDs de los equipos a los que pertenece el alumno
+        const { data: equipos, error: errEquipos } = await supabase
             .from('equipo_alumnos')
             .select('id_equipo')
             .eq('id_alumno', id_alumno);
 
+        if (errEquipos) throw errEquipos;
+
         const idsEquipos = equipos ? equipos.map(e => e.id_equipo) : [];
 
-        const { count: totalExpos } = await supabase
-            .from('exposiciones')
-            .select('*', { count: 'exact', head: true })
-            .in('id_equipo', idsEquipos);
+        // 3. Exposiciones (Solo si el alumno pertenece a algún equipo)
+        let totalExpos = 0;
+        let proximas = [];
 
-        // 3. Evaluaciones realizadas por este alumno
-        const { count: totalEvaluaciones } = await supabase
+        if (idsEquipos.length > 0) {
+            // Contar exposiciones totales del equipo
+            const { count: countExpos, error: errExpos } = await supabase
+                .from('exposiciones')
+                .select('*', { count: 'exact', head: true })
+                .in('id_equipo', idsEquipos);
+            
+            if (errExpos) throw errExpos;
+            totalExpos = countExpos;
+
+            // Obtener las 3 exposiciones más próximas (futuras)
+            const { data: dataProximas, error: errProx } = await supabase
+                .from('exposiciones')
+                .select('tema, fecha_programada')
+                .in('id_equipo', idsEquipos)
+                .gte('fecha_programada', new Date().toISOString())
+                .order('fecha_programada', { ascending: true })
+                .limit(3);
+            
+            if (errProx) throw errProx;
+            proximas = dataProximas;
+        }
+
+        // 4. Evaluaciones realizadas por este alumno (como evaluador)
+        const { count: totalEvaluaciones, error: errEval } = await supabase
             .from('evaluaciones')
             .select('*', { count: 'exact', head: true })
             .eq('id_alumno_evaluador', id_alumno);
 
-        // 4. Próximas exposiciones
-        const { data: proximas } = await supabase
-            .from('exposiciones')
-            .select('tema, fecha_programada')
-            .in('id_equipo', idsEquipos)
-            .gte('fecha_programada', new Date().toISOString())
-            .order('fecha_programada', { ascending: true })
-            .limit(3);
+        if (errEval) throw errEval;
 
+        // Respuesta final estructurada para el Frontend
         res.status(200).json({
             materias_activas: totalMaterias || 0,
-            grupos_totales: totalMaterias || 0,
+            grupos_totales: totalMaterias || 0, // Usamos materias como referencia a grupos
             exposiciones: totalExpos || 0,
             evaluadas: totalEvaluaciones || 0,
             proximas_exposiciones: proximas || []
         });
 
     } catch (err) {
+        console.error("Error en getStudentStats:", err.message);
         next(err);
     }
 }
