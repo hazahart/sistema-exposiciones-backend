@@ -2,13 +2,13 @@ openapi: 3.0.3
 info:
   title: API Sistema de Exposiciones
   description: API REST para la gestión de materias, grupos, equipos y evaluaciones con rúbrica.
-  version: 1.0.0
+  version: 2.0.0
 
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: http://localhost:3000/api/v1
     description: Servidor local desarrollo
-  - url: https://api.exposiciones.app/api/v1
-    description: Servidor producción
+  - url: https://sistema-exposiciones-backend.onrender.com/api/v1
+    description: Servidor producción (Render)
 
 security:
   - bearerAuth: []
